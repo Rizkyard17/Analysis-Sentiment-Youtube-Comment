@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+<<<<<<< HEAD
 # Ignore model files
 *.pkl
 *.h5
@@ -18,10 +19,11 @@ __pycache__/
 # folder tertentu yang menyimpan model
 mlflow_logs_runs/
 models/
-model/
 checkpoints/
 
 
+=======
+>>>>>>> e4141a155574c68b5ded3eb29d04d301decafed2
 # Distribution / packaging
 .Python
 build/
