@@ -1,0 +1,14 @@
+Flask==3.1.1
+Flask_Cors==6.0.1
+joblib==1.2.0
+xgboost==3.0.2
+matplotlib==3.9.2
+mlflow==3.1.1
+dvc==3.60.1
+dvc[s3]
+nltk==3.9.1
+numpy==1.26.4
+pandas==2.2.3
+wordcloud==1.9.4
+seaborn==0.13.2
+-e .
