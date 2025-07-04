@@ -147,7 +147,7 @@ def main():
         # Apply TF-IDF feature engineering on training data
         X_train_bow, y_train = apply_bow(train_data, max_features, ngram_range)
 
-        # Train the LightGBM model using hyperparameters from params.yaml
+        # Train the XGboost model using hyperparameters from params.yaml
         best_model = train_xgb(X_train_bow, y_train, learning_rate, max_depth, n_estimators)
 
         # Save the trained model in the root directory
