@@ -61,6 +61,8 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         df.drop_duplicates(inplace=True)
         # Removing rows with empty strings
         df = df[df['Comment'].str.strip() != '']
+        label_mapping = {'negative': 0, 'neutral': 1, 'positive': 2}
+        df['Sentiment'] = df['Sentiment'].map(label_mapping)
         
         logger.debug('Data preprocessing completed: Missing values, duplicates, and empty strings removed.')
         return df
@@ -95,7 +97,7 @@ def main():
         test_size = params['data_ingestion']['test_size']
         
         # Load data from the specified URL
-        df = load_data(data_url='https://raw.githubusercontent.com/Rizkyard17/Analysis-Sentiment-Youtube-Comment/refs/heads/main/notebook/data_preprocess.csv')
+        df = load_data(data_url='https://raw.githubusercontent.com/Rizkyard17/Analysis-Sentiment-Youtube-Comment/refs/heads/main/dataset/YoutubeCommentsDataSet.csv')
         
         # Preprocess the data
         final_df = preprocess_data(df)

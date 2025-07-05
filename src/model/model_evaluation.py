@@ -56,11 +56,11 @@ def load_model(model_path: str):
 
 
 def load_vectorizer(vectorizer_path: str) -> CountVectorizer:
-    """Load the saved TF-IDF vectorizer."""
+    """Load the saved Bow vectorizer."""
     try:
         with open(vectorizer_path, 'rb') as file:
             vectorizer = pickle.load(file)
-        logger.debug('TF-IDF vectorizer loaded from %s', vectorizer_path)
+        logger.debug('Bow vectorizer loaded from %s', vectorizer_path)
         return vectorizer
     except Exception as e:
         logger.error('Error loading vectorizer from %s: %s', vectorizer_path, e)
@@ -127,7 +127,7 @@ def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
 
 
 def main():
-    mlflow.set_tracking_uri("file:///D:PROYEK/MACHINE LEARNING/Ansen_yt/Analysis-Sentiment-Youtube-Comment/mlflow_logs_runs")
+    mlflow.set_tracking_uri("file:///D:/PROYEK/MACHINE LEARNING/Ansen_yt/Analysis-Sentiment-Youtube-Comment/mlflow_logs_runs")
 
     mlflow.set_experiment('dvc-pipeline-runs')
     
@@ -137,9 +137,12 @@ def main():
             root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
             params = load_params(os.path.join(root_dir, 'params.yaml'))
 
-            # Log parameters
+            # Log parameters - ensure they're serializable
             for key, value in params.items():
-                mlflow.log_param(key, value)
+                if isinstance(value, (str, int, float, bool)):
+                    mlflow.log_param(key, value)
+                else:
+                    mlflow.log_param(key, str(value))
             
             # Load model and vectorizer
             model = load_model(os.path.join(root_dir, 'xgb_model.pkl'))
@@ -148,26 +151,29 @@ def main():
             # Load test data for signature inference
             test_data = load_data(os.path.join(root_dir, 'data/interim/test_processed.csv'))
 
+            # Mapping label test data: pastikan numerik sama seperti data training
+            label_mapping = {'negative': 0, 'neutral': 1, 'positive': 2}
+            test_data['Sentiment'] = test_data['Sentiment'].map(label_mapping)
+
             # Prepare test data
             X_test_bow = vectorizer.transform(test_data['Comment'].values)
             y_test = test_data['Sentiment'].values
 
             # Create a DataFrame for signature inference (using first few rows as an example)
-            input_example = pd.DataFrame(X_test_bow.toarray()[:5], columns=vectorizer.get_feature_names_out())  # <--- Added for signature
+            input_example = pd.DataFrame(X_test_bow.toarray()[:5], columns=vectorizer.get_feature_names_out())
 
             # Infer the signature
-            signature = infer_signature(input_example, model.predict(X_test_bow[:5]))  # <--- Added for signature
+            signature = infer_signature(input_example, model.predict(X_test_bow[:5]))
 
             # Log model with signature
             mlflow.sklearn.log_model(
                 model,
                 "xgb_model",
-                signature=signature,  # <--- Added for signature
-                input_example=input_example  # <--- Added input example
+                signature=signature,
+                input_example=input_example
             )
 
             # Save model info
-            # artifact_uri = mlflow.get_artifact_uri()
             model_path = "xgb_model"
             save_model_info(run.info.run_id, model_path, 'experiment_info.json')
 
@@ -177,17 +183,28 @@ def main():
             # Evaluate model and get metrics
             report, cm = evaluate_model(model, X_test_bow, y_test)
 
-            # Log classification report metrics for the test data
+            # Log classification report metrics for the test data with proper error handling
             for label, metrics in report.items():
                 if isinstance(metrics, dict):
-                    mlflow.log_metrics({
-                        f"test_{label}_precision": metrics['precision'],
-                        f"test_{label}_recall": metrics['recall'],
-                        f"test_{label}_f1-score": metrics['f1-score']
-                    })
+                    safe_label = str(label).replace(" ", "_").replace("/", "_")
+
+                    # Extract metrics with safer handling
+                    precision = metrics.get('precision')
+                    recall = metrics.get('recall')
+                    f1 = metrics.get('f1-score')
+
+                    # Log only if all metrics are valid numbers
+                    if precision is not None and isinstance(precision, (int, float)) and not np.isnan(precision):
+                        mlflow.log_metric(f"test_{safe_label}_precision", float(precision))
+                    
+                    if recall is not None and isinstance(recall, (int, float)) and not np.isnan(recall):
+                        mlflow.log_metric(f"test_{safe_label}_recall", float(recall))
+                    
+                    if f1 is not None and isinstance(f1, (int, float)) and not np.isnan(f1):
+                        mlflow.log_metric(f"test_{safe_label}_f1_score", float(f1))
 
             # Log confusion matrix
-            log_confusion_matrix(cm, "Test Data")
+            log_confusion_matrix(cm, "Test_Data")
 
             # Add important tags
             mlflow.set_tag("model_type", "XGBoost")

@@ -7,3 +7,10 @@ model_building:
   learning_rate: 0.08119271310839746
   max_depth: 10
   n_estimators: 293
+  num_class: 3
+  colsample_bylevel: 0.8369220066178561
+  colsample_bytree: 0.8849946934153168
+  gamma: 0.17345885892923446
+  reg_alpha: 0.02895037724544203
+  reg_lambda: 0.00014445876489744866
+  subsample: 0.821177377650418

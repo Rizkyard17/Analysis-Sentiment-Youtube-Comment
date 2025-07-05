@@ -1,13 +1,10 @@
-# register model
-
 import json
 import mlflow
 import logging
 import os
 
 # Set up MLflow tracking URI
-mlflow.set_tracking_uri("http://ec2-52-91-160-21.compute-1.amazonaws.com:5000/")
-
+mlflow.set_tracking_uri("file:///D:/PROYEK/MACHINE LEARNING/Ansen_yt/Analysis-Sentiment-Youtube-Comment/mlflow_logs_runs")
 
 # logging configuration
 logger = logging.getLogger('model_registration')
@@ -41,22 +38,26 @@ def load_model_info(file_path: str) -> dict:
         raise
 
 def register_model(model_name: str, model_info: dict):
-    """Register the model to the MLflow Model Registry."""
     try:
         model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
         
         # Register the model
         model_version = mlflow.register_model(model_uri, model_name)
         
-        # Transition the model to "Staging" stage
+        # Use the newer model registry API instead of deprecated stage transitions
         client = mlflow.tracking.MlflowClient()
-        client.transition_model_version_stage(
+        
+        # Set model version alias instead of using deprecated stages
+        client.set_registered_model_alias(
             name=model_name,
-            version=model_version.version,
-            stage="Staging"
+            alias="staging",
+            version=model_version.version
         )
         
-        logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
+        logger.debug(f'Model {model_name} version {model_version.version} registered with alias "staging".')
+        
+        return model_version
+        
     except Exception as e:
         logger.error('Error during model registration: %s', e)
         raise
@@ -67,8 +68,10 @@ def main():
         model_info = load_model_info(model_info_path)
         
         model_name = "yt_chrome_plugin_model"
-        # model_name = "my_model"
-        register_model(model_name, model_info)
+        model_version = register_model(model_name, model_info)
+        
+        logger.info(f'Successfully registered model {model_name} version {model_version.version}')
+        
     except Exception as e:
         logger.error('Failed to complete the model registration process: %s', e)
         print(f"Error: {e}")
