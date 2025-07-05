@@ -78,6 +78,8 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+mlflow_logs_runs/
+
 # IPython
 profile_default/
 ipython_config.py
